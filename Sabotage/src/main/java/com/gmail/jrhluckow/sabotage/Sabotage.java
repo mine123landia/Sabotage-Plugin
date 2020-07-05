@@ -1,60 +1,41 @@
 package com.gmail.jrhluckow.sabotage;
 
-import com.gmail.jrhluckow.sabotage.chests.ChestSystem;
-import com.gmail.jrhluckow.sabotage.commands.End;
-import com.gmail.jrhluckow.sabotage.commands.Start;
-import com.gmail.jrhluckow.sabotage.game.GameStatus;
-import com.gmail.jrhluckow.sabotage.game.Team;
-import com.gmail.jrhluckow.sabotage.lang.TranslatableContent;
-import com.gmail.jrhluckow.sabotage.listener.PluginEventHandler;
-import com.gmail.jrhluckow.sabotage.worlds.WorldManager;
+import com.gmail.jrhluckow.sabotage.commands.Game;
+import com.gmail.jrhluckow.sabotage.commands.Join;
+import com.gmail.jrhluckow.sabotage.commands.List;
+import com.gmail.jrhluckow.sabotage.commands.Quit;
+import com.gmail.jrhluckow.sabotage.game.GameManager;
+import com.gmail.jrhluckow.sabotage.listener.OnJoinEvent;
+import com.gmail.jrhluckow.sabotage.playerData.PlayerListenerManager;
+import com.gmail.jrhluckow.sabotage.playerData.PlayerManager;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.UUID;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.World;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public final class Sabotage extends JavaPlugin {
+    public static HashMap<String, GameManager> games = new HashMap();
+    public static HashMap<UUID, PlayerManager> playerManagers = new HashMap();
     ConsoleCommandSender console = Bukkit.getConsoleSender();
-    @Override
-    public void onEnable() {
-        GameStatus gameStatus = new GameStatus(this);
-        this.getCommand("start").setExecutor(new Start());
-        this.getCommand("end").setExecutor(new End());
-        this.getServer().getPluginManager().registerEvents(new PluginEventHandler(),this);
-        saveDefaultConfig();
+    public static PlayerListenerManager playerListenerManager;
 
-        TranslatableContent translatableContent = new TranslatableContent(this);
-        ChestSystem chestSystem = new ChestSystem(this);
-        ChestSystem.registerItems();
-
-        AtomicInteger MAP_LOAD_SUCESS= new AtomicInteger();
-        AtomicInteger MAP_LOAD_ERROR= new AtomicInteger();
-        List<String> MAPS_WITH_ERRORS= new ArrayList<>();
-        getConfig().getList("maps").forEach((maps) -> {
-         Object map = (Object)maps;
-         if(Bukkit.getWorld((String)map) == null) {
-             MAP_LOAD_ERROR.getAndIncrement();
-             MAPS_WITH_ERRORS.add((String)map);
-         }else{
-             WorldManager.loadWorld((String)map);
-             MAP_LOAD_SUCESS.getAndIncrement();
-         }
-        });
-
-        console.sendMessage(ChatColor.translateAlternateColorCodes('&', "&2&lSabotage- &cPlugin started.\n&2&lSabotage- &aMaps Loaded Successfully: " + MAP_LOAD_SUCESS.get() + "\n&2&lSabotage- &cMaps with Errors: " + MAP_LOAD_ERROR.get() + "&c(" +MAPS_WITH_ERRORS.toString().replace("[]","")+ ")"));
-        GameStatus.startDelay();
-
-
+    public Sabotage() {
     }
 
-    @Override
+    public void onEnable() {
+        playerListenerManager = new PlayerListenerManager();
+        this.console.sendMessage("Listener iniciado");
+        this.console.sendMessage("GameManager iniciado");
+        ((PluginCommand)Objects.requireNonNull(this.getCommand("join"))).setExecutor(new Join());
+        this.getCommand("quit").setExecutor(new Quit());
+        this.getCommand("game").setExecutor(new Game());
+        this.getCommand("list").setExecutor(new List());
+        this.getServer().getPluginManager().registerEvents(new OnJoinEvent(), this);
+    }
+
     public void onDisable() {
-        GameStatus.endGame();
-        Team.clearTeams();
     }
 }
